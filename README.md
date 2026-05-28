@@ -1,118 +1,128 @@
 # SQL Database Demo
 
-Small, self-contained **SQLite** demo with a simple schema (**customers**, **orders**), sample data, and example queries.  
-Perfect for quick tests, interviews, or teaching basic SQL joins, grouping, and exports.
+A self-contained SQLite demo for practicing relational database basics and reporting queries. The project models a small shop with customers, products, orders, and order items.
 
-> **Tech**: SQLite, SQL · Single file DB: `demo.db`
-
----
+It is useful for SQL practice, interviews, classroom demos, and portfolio review because the database can be rebuilt from plain SQL scripts.
 
 ## Features
 
-- Schema with `customers` and `orders` (FK with referential integrity)
-- Sample data inserts
-- Ready-to-run queries (`sql/queries.sql`)
-- Export example (CSV)
-- Works in **PowerShell** or **VS Code** (SQLite extension)
+- Relational schema with foreign keys and indexes
+- Sample shop/order dataset
+- Basic SQL demos for joins, grouping, filtering, aggregation, and low-stock checks
+- Advanced SQL demos with CTEs, window functions, `HAVING`, `CASE`, and subqueries
+- View demo for reusable reporting queries
+- Export-friendly `data/` folder for CSV output
 
----
+## Tech Stack
+
+- SQLite
+- SQL
+- PowerShell, VS Code, or any terminal with `sqlite3`
 
 ## Project Structure
 
-sql-database-demo/
-├─ sql/
-│ ├─ schema.sql # table definitions
-│ ├─ sample_data.sql # demo rows
-│ └─ queries.sql # sample queries
-├─ data/ # exports (CSV etc.)
-├─ demo.db # SQLite database file (generated)
-├─ README.md
-└─ LICENSE
+```text
+.
+|-- sql/
+|   |-- schema.sql           # tables, constraints, indexes
+|   |-- sample_data.sql      # demo rows
+|   |-- queries.sql          # basic SQL examples
+|   |-- advanced_queries.sql # CTEs, window functions, CASE, HAVING
+|   `-- views.sql            # reusable reporting view
+|-- data/
+|   `-- .gitkeep             # generated CSV exports can go here
+|-- .gitignore
+|-- README.md
+`-- LICENSE
+```
 
-
-
----
+`demo.db` is generated locally and intentionally not committed.
 
 ## Quickstart
 
-### A) PowerShell + SQLite CLI
+### PowerShell + SQLite CLI
+
+Point `$sqlite` to your local SQLite executable:
 
 ```powershell
-# 1) Point to your sqlite3.exe
 $sqlite = "C:\tools\sqlite\sqlite3.exe"
 & $sqlite --version
+```
 
-# 2) (Re)create DB from scripts
-cd sql-database-demo
-Remove-Item .\demo.db -Force
+Rebuild the database:
+
+```powershell
+Remove-Item .\demo.db -Force -ErrorAction SilentlyContinue
 & $sqlite demo.db ".read sql\schema.sql" ".read sql\sample_data.sql"
+```
 
-# 3) Quick checks
-& $sqlite demo.db ".tables"
-& $sqlite demo.db ".headers on" ".mode box" "SELECT * FROM customers;"
-& $sqlite demo.db ".headers on" ".mode box" "SELECT * FROM orders;"
+Run the demos:
 
-# 4) Run all example queries
+```powershell
 & $sqlite demo.db ".headers on" ".mode box" ".read sql\queries.sql"
+& $sqlite demo.db ".headers on" ".mode box" ".read sql\advanced_queries.sql"
+& $sqlite demo.db ".headers on" ".mode box" ".read sql\views.sql"
+```
 
-# 5) Export to CSV (example: total spent per customer)
+### macOS / Linux
+
+```bash
+rm -f demo.db
+sqlite3 demo.db < sql/schema.sql
+sqlite3 demo.db < sql/sample_data.sql
+sqlite3 -header -box demo.db < sql/queries.sql
+sqlite3 -header -box demo.db < sql/advanced_queries.sql
+sqlite3 -header -box demo.db < sql/views.sql
+```
+
+## Schema Overview
+
+- `customers`: customer master data
+- `products`: product catalog with category, price, and stock
+- `orders`: order header with customer, date, and status
+- `order_items`: order lines with product, quantity, and unit price
+
+The schema includes foreign keys and indexes for common join/filter columns.
+
+## Included SQL Demos
+
+`sql/queries.sql` covers:
+
+- selecting and sorting rows
+- joining orders with customers and products
+- calculating line totals and order totals
+- revenue by customer and category
+- low-stock product checks
+- open order reporting
+
+`sql/advanced_queries.sql` covers:
+
+- CTE-based order totals
+- customer revenue ranking with `RANK()`
+- running revenue over time
+- grouped filters with `HAVING`
+- customer segmentation with `CASE`
+- subqueries against aggregate values
+
+`sql/views.sql` creates `customer_order_summary`, a reusable reporting view for customer order counts and completed revenue.
+
+## Export Example
+
+Export completed revenue by customer to CSV:
+
+```powershell
 & $sqlite demo.db `
   ".headers on" `
   ".mode csv" `
-  ".output data/orders_by_customer.csv" `
-  "SELECT c.name, ROUND(SUM(o.amount),2) AS total
-     FROM orders o JOIN customers c ON c.id=o.customer_id
-     GROUP BY c.name
-     ORDER BY total DESC;" `
+  ".output data\customer_revenue.csv" `
+  "SELECT customer, completed_orders, completed_revenue FROM customer_order_summary ORDER BY completed_revenue DESC;" `
   ".output stdout"
-B) VS Code
-Install SQLite extension (alexcvzz) or SQLTools + SQLite driver
+```
 
-Add/open demo.db in the SQLite Explorer
+If the view does not exist yet, run `sql/views.sql` first.
 
-Open and execute sql/queries.sql
-
-Schema Overview
-
--- customers
-CREATE TABLE customers (
-  id INTEGER PRIMARY KEY,
-  name TEXT NOT NULL,
-  email TEXT,
-  city TEXT
-);
-
--- orders
-CREATE TABLE orders (
-  id INTEGER PRIMARY KEY,
-  customer_id INTEGER NOT NULL,
-  amount REAL NOT NULL,
-  created_at TEXT NOT NULL,
-  FOREIGN KEY (customer_id) REFERENCES customers(id)
-);
-Example Queries
-
--- all customers
-SELECT * FROM customers;
-
--- orders with customer names
-SELECT o.id, c.name, o.amount, o.created_at
-FROM orders o
-JOIN customers c ON c.id = o.customer_id;
-
--- total spending per customer
-SELECT c.name, ROUND(SUM(o.amount), 2) AS total_amount
-FROM orders o
-JOIN customers c ON c.id = o.customer_id
-GROUP BY c.name
-ORDER BY total_amount DESC;
-
--- orders in last 7 days
-SELECT *
-FROM orders
-WHERE date(created_at) >= date('now','-7 day');
-Notes
-DB demo.db is a binary file; if you want a clean rebuild:
-Remove-Item .\demo.db -Force → then run schema.sql and sample_data.sql.
+## Notes
 
 SQLite CLI download: https://sqlite.org/download.html
+
+In VS Code, you can use the SQLite extension or SQLTools with the SQLite driver, open `demo.db`, and run the SQL files from the `sql/` folder.
