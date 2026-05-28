@@ -1,0 +1,6 @@
+demo.db
+*.db
+*.sqlite
+*.sqlite3
+data/*.csv
+!data/.gitkeep
